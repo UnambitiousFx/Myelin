@@ -1,0 +1,16 @@
+{
+  "$schema": "https://context7.com/schema/context7.json",
+  "projectTitle": "UnambitiousFx Myelin",
+  "description": "SSRF-safe outbound HTTP for .NET: public addresses only (checked after resolution, DNS rebinding included), every redirect revalidated, bounded time and size, IHttpClientFactory integration. NativeAOT-ready.",
+  "branch": "main",
+  "folders": [
+    "docs/docs"
+  ],
+  "rules": [
+    "Register with services.AddMyelin(o => ...) and inject SafeHttpClient, or add .UseMyelin() to an AddHttpClient registration.",
+    "Never fetch a user-supplied URL with a plain HttpClient: use SafeHttpClient or a UseMyelin() client.",
+    "A refusal throws OutboundRefusedException with Reason (RefusalReasons constants) and Host; 4xx/5xx statuses are returned, not thrown.",
+    "SafeHttpClient.GetAsync follows and revalidates redirects; PostJsonAsync and SendOnceAsync never follow one; UseMyelin() clients return redirects to the caller.",
+    "Replace IHostResolver to make tests deterministic; never disable the address checks."
+  ]
+}

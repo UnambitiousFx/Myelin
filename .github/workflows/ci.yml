@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: "10.0.x"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore Myelin.slnx
+
+      - name: Build
+        run: dotnet build Myelin.slnx --no-restore --configuration Release
+
+      - name: Test (coverage + TRX)
+        run: >
+          dotnet test --solution Myelin.slnx
+          --no-build
+          --configuration Release
+          --report-trx
+          --coverage --coverage-output-format cobertura
+          --results-directory ./test-results
+
+      - name: Convert TRX to JUnit (for Codecov test results)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          dotnet tool install --global trx2junit
+          trx2junit ./test-results/*.trx --output ./test-results/junit
+
+      - name: Upload coverage reports to Codecov
+        if: matrix.os == 'ubuntu-latest'
+        uses: codecov/codecov-action@v7
+        with:
+          files: ./test-results/*.cobertura.xml
+          disable_search: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload test results to Codecov
+        if: matrix.os == 'ubuntu-latest'
+        uses: codecov/codecov-action@v7
+        with:
+          report_type: test_results
+          files: ./test-results/junit/*.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  native-aot:
+    name: Native AOT Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Publish Native AOT
+        run: >
+          dotnet publish examples/BasicUsage/BasicUsage.csproj
+          --configuration Release
+          --runtime linux-x64
+          --self-contained
+
+      - name: Run the AOT binary
+        run: |
+          AOT_BINARY="examples/BasicUsage/bin/Release/net10.0/linux-x64/publish/UnambitiousFx.Examples.BasicUsage"
+          "$AOT_BINARY" > actual.txt
+          cat actual.txt
+          # Every SSRF target refused for the right reason: a trimming or AOT regression changes a line.
+          cat > expected.txt <<'LINES'
+          https://169.254.169.254/latest/meta-data/ -> address_refused
+          https://localhost:8080/admin -> address_refused
+          https://[::ffff:10.0.0.1]/ -> address_refused
+          http://example.com/ -> not_https
+          https://user:secret@example.com/ -> user_info
+          8.8.8.8 allowed: True
+          64:ff9b::a00:1 allowed: False
+          LINES
+          if ! diff <(sed 's/^ *//' expected.txt) actual.txt; then
+            echo "✗ The AOT binary did not refuse every target as expected"
+            exit 1
+          fi
+          echo "✓ SSRF refusals work under Native AOT"

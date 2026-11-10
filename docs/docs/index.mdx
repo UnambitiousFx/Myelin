@@ -1,0 +1,46 @@
+---
+sidebar_position: 1
+title: Myelin
+description: SSRF-safe outbound HTTP for .NET. Public addresses only, checked after resolution (DNS rebinding included), every redirect revalidated, bounded time and size.
+---
+
+# Myelin
+
+UnambitiousFx.Myelin is an outbound HTTP layer for .NET that only reaches the public internet. Use it whenever your
+server fetches a URL it did not write itself: webhooks, « import from URL », link previews, avatar or icon fetchers,
+callbacks of third-party services.
+
+> *Myelin* is the sheath around a nerve fibre that keeps the signal from leaking. Here, it keeps your server's requests
+> from leaking into your own network.
+
+## The problem: SSRF
+
+A plain `HttpClient` happily connects to `127.0.0.1`, to the cloud metadata endpoint `169.254.169.254`, or to the
+private network behind your server. If an attacker controls the URL, that is **server-side request forgery** (SSRF):
+your server becomes their proxy into places they cannot reach.
+
+Checking the URL text is not enough:
+
+- `0x7f000001`, `2130706433` and `[::ffff:127.0.0.1]` are all `127.0.0.1`;
+- a public name can resolve to a private address, or resolve to a public one when you check and a private one when you
+  connect (**DNS rebinding**);
+- a harmless URL can **redirect** to a harmful one;
+- a proxy hides the real destination.
+
+## What Myelin does
+
+- **Resolves the host itself**, refuses it when *any* answer is a special-purpose address, and connects only to the
+  addresses it checked. See [Address policy](address-policy).
+- **HTTPS only**, no credentials in the URL, optional host allow-list with wildcards.
+- **Revalidates every redirect** of a GET; never redirects a POST or a request with extra headers.
+- **Bounds time and size**, declared or streamed.
+- **Logs each refusal** with its host and reason only.
+
+Two ways to use it: [`SafeHttpClient`](safe-http-client), a small client that reads bodies within a limit, or
+[`UseMyelin()`](http-client-factory) on any `IHttpClientFactory` client.
+
+## Where next
+
+- [Getting Started](getting-started)
+- [Address policy](address-policy): every range Myelin refuses.
+- [SafeHttpClient](safe-http-client) and [IHttpClientFactory](http-client-factory).

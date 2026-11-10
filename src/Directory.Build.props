@@ -1,0 +1,69 @@
+<Project>
+    <Import Project="$([MSBuild]::GetPathOfFileAbove(&#39;build.props&#39;))" />
+    <PropertyGroup>
+        <IsAotCompatible>true</IsAotCompatible>
+        <PackageOutputPath>$(SolutionDir)local_packages</PackageOutputPath>
+
+        <!-- Package metadata -->
+        <Authors>UnambitiousFx</Authors>
+        <Company>UnambitiousFx</Company>
+        <Description>SSRF-safe outbound HTTP for .NET: resolves names itself, refuses private, loopback, link-local and other special-purpose addresses (DNS rebinding included), revalidates every redirect, and bounds time and size.</Description>
+        <PackageTags>ssrf;security;httpclient;http;outbound;dns-rebinding;webhooks;allowlist;ip-address;private-network;httpclientfactory</PackageTags>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <Copyright>Copyright (c) UnambitiousFx $([System.DateTime]::Now.Year)</Copyright>
+
+        <!-- Repository metadata -->
+        <RepositoryUrl>https://github.com/UnambitiousFx/Myelin.git</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+        <PackageProjectUrl>https://github.com/UnambitiousFx/Myelin</PackageProjectUrl>
+        <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+
+        <!-- Source link and symbols -->
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+        <!-- Build configuration -->
+        <GeneratePackageOnBuild Condition="'$(CI)' == 'true'">true</GeneratePackageOnBuild>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+        <Deterministic>true</Deterministic>
+        <PackageIcon>icon.png</PackageIcon>
+
+        <!-- Package validation -->
+        <EnablePackageValidation>true</EnablePackageValidation>
+        <!-- <PackageValidationBaselineVersion>1.0.0</PackageValidationBaselineVersion> -->
+        <!-- <EnableCompatibilitySuppressions>true</EnableCompatibilitySuppressions> -->
+        <!-- <GenerateCompatibilitySuppressionFile>true</GenerateCompatibilitySuppressionFile> -->
+    </PropertyGroup>
+
+    <ItemGroup Condition="$(CI) == 'true'">
+        <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+    </ItemGroup>
+
+    <ItemGroup Condition="!Exists('README.md')">
+        <None Include="$([MSBuild]::GetPathOfFileAbove('README.md'))" Pack="true" PackagePath="\" />
+    </ItemGroup>
+    <ItemGroup Condition="Exists('README.md')">
+        <None Include="README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="$([MSBuild]::GetPathOfFileAbove('icon.png'))" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+    <!-- Agent Skills (agentskills.io) shipped at skills/<name>/SKILL.md in the package,
+         plus an opt-in buildTransitive target that copies them into the consumer's repo -->
+    <ItemGroup Condition="Exists('skills')">
+        <None Include="skills/**/*" Pack="true" PackagePath="skills/" />
+        <None Include="$(MSBuildThisFileDirectory)buildTransitive/UnambitiousFx.Skills.targets"
+              Pack="true" PackagePath="buildTransitive/$(PackageId).targets" Visible="false" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="$(AssemblyName).Tests" />
+    </ItemGroup>
+
+</Project>

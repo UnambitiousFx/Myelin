@@ -1,0 +1,32 @@
+---
+title: Benchmarks
+description: The cost of the address check Myelin runs on every resolved address.
+---
+
+# Benchmarks
+
+`AddressPolicy.IsAllowed` runs once per resolved address of every **new connection** (connections are pooled, so not
+per request). The suite in `benchmarks/MyelinBenchmark` measures it for each kind of address.
+
+## Results
+
+BenchmarkDotNet 0.15.8, `ShortRun` (3 warmups, 3 iterations), .NET 10.0.14, Apple M5 Pro, macOS.
+
+| Address | Example | Mean | Allocated |
+|---|---|---:|---:|
+| Public IPv4 | `8.8.8.8` | 14.0 ns | - |
+| Private IPv4 | `10.0.0.1` | 1.9 ns | - |
+| Public IPv6 | `2606:50c0:8000::154` | 30.3 ns | - |
+| IPv4-mapped | `::ffff:8.8.8.8` | 17.5 ns | 40 B |
+| NAT64 | `64:ff9b::808:808` | 27.8 ns | 112 B |
+
+A refused address is found early (it matches one of the first ranges); a public one is compared with every range. Either
+way the check is negligible next to a DNS lookup and a TLS handshake.
+
+## Running the benchmarks
+
+```bash
+dotnet run --project benchmarks/MyelinBenchmark -c Release
+# a quick, less precise run
+dotnet run --project benchmarks/MyelinBenchmark -c Release -- --filter '*' --job short
+```
