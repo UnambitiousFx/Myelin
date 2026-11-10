@@ -1,0 +1,45 @@
+---
+sidebar_position: 5
+title: IHttpClientFactory
+description: Make a named or typed HttpClient SSRF-safe with UseMyelin().
+---
+
+# IHttpClientFactory
+
+When you already use `HttpClient` through `IHttpClientFactory`, add `UseMyelin()` to the client's registration:
+
+```csharp
+builder.Services
+    .AddHttpClient<WebhookSender>(client => client.Timeout = TimeSpan.FromSeconds(10))
+    .UseMyelin(o => o.AllowedHosts = ["hooks.example.com"]);
+```
+
+The client then:
+
+- uses `MyelinHandler.Create` as its primary handler: public addresses only, checked after resolution, no proxy, no
+  cookies;
+- checks every request for HTTPS, credentials in the URL and the allow-list;
+- sends `UserAgent` when the request has none;
+- throws `OutboundRefusedException` on a refusal, as `SafeHttpClient` does.
+
+## What differs from SafeHttpClient
+
+| | `SafeHttpClient` | `UseMyelin()` |
+|---|---|---|
+| Redirects | GET follows them, each revalidated | **Not followed**: the 3xx is returned to you |
+| Body size | `maxBytes` on every call | Up to you (`HttpCompletionOption.ResponseHeadersRead` and a bounded read) |
+| Timeout | `MyelinOptions.Timeout` | `HttpClient.Timeout` |
+
+If you follow a redirect yourself, send the new URL through the same client: the request is checked again.
+
+## Options per client
+
+`UseMyelin(configure)` configures the options of **that** client only (named options). Two clients can have different
+allow-lists:
+
+```csharp
+services.AddHttpClient("webhooks").UseMyelin(o => o.AllowedHosts = ["hooks.example.com"]);
+services.AddHttpClient("previews").UseMyelin(); // any public host
+```
+
+Both share the registered `IHostResolver`.

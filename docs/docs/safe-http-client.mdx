@@ -1,0 +1,60 @@
+---
+sidebar_position: 4
+title: SafeHttpClient
+description: GET with revalidated redirects, single-shot POST and custom requests, bounded body reading.
+---
+
+# SafeHttpClient
+
+`SafeHttpClient` is the small client `AddMyelin()` registers. Each call reads the whole body within a size limit and
+returns an `OutboundResponse(Status, Body)`.
+
+## GET
+
+```csharp
+var response = await http.GetAsync(url, maxBytes: 1_000_000, ct);
+```
+
+Redirects (301, 302, 303, 307, 308) are followed up to `MaxRedirects`, and **each hop is checked like the first
+request**: HTTPS, credentials, allow-list, then the addresses of the new host. A redirect from an allowed host to
+`https://169.254.169.254/` is refused.
+
+## POST a JSON body
+
+```csharp
+await http.PostJsonAsync(webhookUrl, JsonSerializer.SerializeToUtf8Bytes(payload, AppJsonContext.Default.Payload), 4096, ct);
+```
+
+A redirect is **refused, never followed**: a POST must not be replayed to another host, and a webhook URL is a secret.
+
+## Any method, extra headers
+
+```csharp
+var headers = new Dictionary<string, string> { ["Authorization"] = $"Bearer {token}" };
+await http.SendOnceAsync(HttpMethod.Delete, url, json: null, headers, maxBytes: 4096, ct);
+```
+
+Never redirected either: the headers are meant for this host only.
+
+## Size and time
+
+- `Content-Length` over `maxBytes` is refused before reading.
+- Without `Content-Length`, or when it lies, the limit holds on the bytes actually read.
+- `Timeout` covers the whole call, redirects and body included; it throws `OperationCanceledException`, like the
+  `CancellationToken` you pass.
+
+## Logging
+
+Each refusal logs one warning, `Outbound request to {Host} refused: {Reason}`, through `ILogger<SafeHttpClient>`.
+Never the path or the query: they may carry a token.
+
+## Without dependency injection
+
+```csharp
+var http = new SafeHttpClient(
+    new HttpMessageInvoker(MyelinHandler.Create()),
+    new MyelinOptions { AllowedHosts = ["api.example.com"] },
+    NullLogger<SafeHttpClient>.Instance);
+```
+
+Keep one instance for the application's lifetime: it pools connections like `HttpClient`.

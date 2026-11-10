@@ -1,0 +1,90 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommits"
+  ],
+  "schedule": [
+    "before 4am on monday"
+  ],
+  "prConcurrentLimit": 10,
+  "packageRules": [
+    {
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "digest"
+      ],
+      "automerge": true
+    },
+    {
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "reviewers": [
+        "Oleexo"
+      ]
+    },
+    {
+      "matchManagers": [
+        "nuget"
+      ],
+      "matchPackageNames": [
+        "Microsoft.**"
+      ],
+      "groupName": "microsoft"
+    },
+    {
+      "matchManagers": [
+        "nuget"
+      ],
+      "matchPackageNames": [
+        "BenchmarkDotNet**"
+      ],
+      "groupName": "benchmarkdotnet"
+    },
+    {
+      "matchManagers": [
+        "nuget"
+      ],
+      "matchPackageNames": [
+        "xunit**",
+        "NSubstitute**",
+        "coverlet**"
+      ],
+      "groupName": "testing"
+    },
+    {
+      "matchManagers": [
+        "npm"
+      ],
+      "matchFileNames": [
+        "docs/**"
+      ],
+      "groupName": "docs"
+    },
+    {
+      "description": "Keep Microsoft.Extensions.* of the net8.0 target on the 8.x line",
+      "matchManagers": [
+        "nuget"
+      ],
+      "matchPackageNames": [
+        "Microsoft.Extensions.**"
+      ],
+      "matchCurrentVersion": "/^8\\./",
+      "allowedVersions": "<9.0.0"
+    },
+    {
+      "description": "Keep Microsoft.Extensions.* of the net9.0 target on the 9.x line",
+      "matchManagers": [
+        "nuget"
+      ],
+      "matchPackageNames": [
+        "Microsoft.Extensions.**"
+      ],
+      "matchCurrentVersion": "/^9\\./",
+      "allowedVersions": "<10.0.0"
+    }
+  ]
+}

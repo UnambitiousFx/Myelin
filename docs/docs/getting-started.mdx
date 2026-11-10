@@ -1,0 +1,94 @@
+---
+sidebar_position: 2
+title: Getting Started
+description: Install UnambitiousFx.Myelin, register it, and send an SSRF-safe request.
+---
+
+# Getting Started
+
+## Install
+
+```bash
+dotnet add package UnambitiousFx.Myelin
+```
+
+Myelin targets `net8.0`, `net9.0` and `net10.0`. Its only dependencies are `Microsoft.Extensions.Http`,
+`Microsoft.Extensions.Logging.Abstractions` and `Microsoft.Extensions.Options`. It is trimming- and NativeAOT-compatible.
+
+## Register
+
+```csharp
+using UnambitiousFx.Myelin;
+
+builder.Services.AddMyelin(o =>
+{
+    o.AllowedHosts = ["api.example.com", "*.cdn.example.org"]; // empty: any public host
+    o.UserAgent = "MyApp/1.0 (+https://example.com)";
+    o.Timeout = TimeSpan.FromSeconds(10);
+    o.MaxRedirects = 3;
+});
+```
+
+Or bind the options from configuration:
+
+```csharp
+builder.Services.AddMyelin();
+builder.Services.Configure<MyelinOptions>(builder.Configuration.GetSection("Myelin"));
+```
+
+```json title="appsettings.json"
+{
+  "Myelin": {
+    "AllowedHosts": ["api.example.com", "*.cdn.example.org"],
+    "UserAgent": "MyApp/1.0"
+  }
+}
+```
+
+## Fetch
+
+```csharp
+public sealed class IconFetcher(SafeHttpClient http)
+{
+    public async Task<byte[]?> FetchAsync(Uri url, CancellationToken ct)
+    {
+        try
+        {
+            var response = await http.GetAsync(url, maxBytes: 512_000, ct);
+            return response.Status == HttpStatusCode.OK ? response.Body : null;
+        }
+        catch (OutboundRefusedException refused)
+        {
+            // refused.Reason: "address_refused", "not_https", "host_not_allowed", "too_large"...
+            return null;
+        }
+    }
+}
+```
+
+A 4xx or 5xx is returned in `OutboundResponse.Status`, not thrown. Only a refusal throws
+`OutboundRefusedException`; network failures and the timeout throw as `HttpClient` would.
+
+## Options
+
+| Option | Default | Meaning |
+|---|---|---|
+| `AllowedHosts` | `[]` | Hosts a request may target. Empty allows any host whose addresses are public. `*.example.com` matches subdomains, not `example.com`. |
+| `UserAgent` | `null` | Sent on every request. Some servers refuse a request without one. |
+| `Timeout` | 30 s | The whole call: redirects and body included. |
+| `MaxRedirects` | 3 | How many redirects a GET may follow. |
+
+## Refusal reasons
+
+| `Reason` | When |
+|---|---|
+| `not_https` | The URL is relative or not `https`. |
+| `user_info` | The URL carries credentials. |
+| `host_not_allowed` | The host is not in `AllowedHosts`. |
+| `address_refused` | The host resolves to nothing, or to at least one refused address. |
+| `too_many_redirects` | More redirects than `MaxRedirects`. |
+| `redirect_without_location` | A 3xx without `Location`. |
+| `redirect_refused` | A redirect answered a request that is never redirected. |
+| `too_large` | The body is over the limit of the call. |
+
+Constants for all of them are in `RefusalReasons`.

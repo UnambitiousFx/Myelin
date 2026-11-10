@@ -1,0 +1,40 @@
+---
+title: Using these docs with AI
+description: Point AI coding assistants at the Myelin docs via llms.txt and the Context7 MCP server, and use the Agent Skill shipped in the NuGet package.
+---
+
+# Using these docs with AI
+
+These docs are built to be consumed by AI coding assistants, not just humans.
+
+## 1. llms.txt (zero setup)
+
+Every build publishes machine-readable bundles following the [llmstxt.org](https://llmstxt.org) standard:
+
+| File | Contents |
+|------|----------|
+| [`/llms.txt`](https://myelin.unambitiousfx.com/llms.txt) | Index of every doc section with links |
+| [`/llms-full.txt`](https://myelin.unambitiousfx.com/llms-full.txt) | All documentation in one file |
+
+## 2. Context7 MCP
+
+[Context7](https://context7.com) indexes these docs and serves them over MCP. Library ID: **`/UnambitiousFx/Myelin`**.
+
+## 3. Agent skill shipped in the package
+
+The `UnambitiousFx.Myelin` package ships an [Agent Skill](https://agentskills.io), `unambitiousfx-myelin`: a `SKILL.md`
+that tells coding agents how to make outbound HTTP calls without opening an SSRF hole.
+
+`dotnet restore` places it under `~/.nuget/packages/unambitiousfx.myelin/<version>/skills/`, but agents only load skills
+from their own folders. Set `UnambitiousFxSkillsDestination` to have the package copy its skill there on every build:
+
+```xml title="Directory.Build.props"
+<Project>
+  <PropertyGroup>
+    <UnambitiousFxSkillsDestination>$(MSBuildThisFileDirectory).claude/skills</UnambitiousFxSkillsDestination>
+  </PropertyGroup>
+</Project>
+```
+
+The copy always matches the referenced package version. Every UnambitiousFx package uses the same property, so one
+setting copies the skills of all of them.
