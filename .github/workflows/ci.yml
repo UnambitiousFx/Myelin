@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  DOTNET_VERSION: "10.0.x"
+  DOTNET_VERSION: "11.0.x"
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
 
@@ -33,6 +33,7 @@ jobs:
           dotnet-version: |
             8.0.x
             9.0.x
+            10.0.x
             ${{ env.DOTNET_VERSION }}
 
       - name: Restore dependencies
@@ -75,6 +76,9 @@ jobs:
   native-aot:
     name: Native AOT Validation
     runs-on: ubuntu-latest
+    env:
+      # Every target of the example is published and run, so each library build is checked under NativeAOT.
+      AOT_TFMS: "net10.0 net11.0"
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -87,17 +91,17 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Publish Native AOT
-        run: >
-          dotnet publish examples/BasicUsage/BasicUsage.csproj
-          --configuration Release
-          --runtime linux-x64
-          --self-contained
+        run: |
+          for tfm in $AOT_TFMS; do
+            dotnet publish examples/BasicUsage/BasicUsage.csproj \
+              --configuration Release \
+              --runtime linux-x64 \
+              --self-contained \
+              --framework "$tfm"
+          done
 
       - name: Run the AOT binary
         run: |
-          AOT_BINARY="examples/BasicUsage/bin/Release/net10.0/linux-x64/publish/UnambitiousFx.Examples.BasicUsage"
-          "$AOT_BINARY" > actual.txt
-          cat actual.txt
           # Every SSRF target refused for the right reason: a trimming or AOT regression changes a line.
           cat > expected.txt <<'LINES'
           https://169.254.169.254/latest/meta-data/ -> address_refused
@@ -108,8 +112,13 @@ jobs:
           8.8.8.8 allowed: True
           64:ff9b::a00:1 allowed: False
           LINES
-          if ! diff <(sed 's/^ *//' expected.txt) actual.txt; then
-            echo "✗ The AOT binary did not refuse every target as expected"
-            exit 1
-          fi
-          echo "✓ SSRF refusals work under Native AOT"
+          for tfm in $AOT_TFMS; do
+            AOT_BINARY="examples/BasicUsage/bin/Release/$tfm/linux-x64/publish/UnambitiousFx.Examples.BasicUsage"
+            "$AOT_BINARY" > actual.txt
+            cat actual.txt
+            if ! diff <(sed 's/^ *//' expected.txt) actual.txt; then
+              echo "✗ The $tfm AOT binary did not refuse every target as expected"
+              exit 1
+            fi
+            echo "✓ SSRF refusals work under Native AOT ($tfm)"
+          done
