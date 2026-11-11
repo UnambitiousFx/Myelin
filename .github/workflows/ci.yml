@@ -74,8 +74,13 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
 
   native-aot:
-    name: Native AOT Validation
+    name: Native AOT Validation (${{ matrix.tfm }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # One run per target of the example, so each library build is checked under NativeAOT.
+        tfm: [net10.0, net11.0]
+      fail-fast: false
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -93,10 +98,11 @@ jobs:
           --configuration Release
           --runtime linux-x64
           --self-contained
+          --framework ${{ matrix.tfm }}
 
       - name: Run the AOT binary
         run: |
-          AOT_BINARY="examples/BasicUsage/bin/Release/net10.0/linux-x64/publish/UnambitiousFx.Examples.BasicUsage"
+          AOT_BINARY="examples/BasicUsage/bin/Release/${{ matrix.tfm }}/linux-x64/publish/UnambitiousFx.Examples.BasicUsage"
           "$AOT_BINARY" > actual.txt
           cat actual.txt
           # Every SSRF target refused for the right reason: a trimming or AOT regression changes a line.
