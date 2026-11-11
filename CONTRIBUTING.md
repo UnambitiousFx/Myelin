@@ -80,7 +80,7 @@ dotnet test --solution Myelin.slnx
 dotnet test --solution Myelin.slnx --coverage --coverage-output-format cobertura --coverage-settings ./test/coverage.settings.xml
 
 # The NativeAOT sample
-dotnet publish examples/BasicUsage -c Release -r <rid> --self-contained
+dotnet publish examples/BasicUsage -c Release -f net11.0 -r <rid> --self-contained
 ```
 
 Tests never reach the network: use `StubHandler` for responses and `FixedResolver` for DNS answers.
