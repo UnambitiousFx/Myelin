@@ -5,7 +5,7 @@
 [![codecov](https://codecov.io/gh/UnambitiousFx/Myelin/branch/main/graph/badge.svg)](https://codecov.io/gh/UnambitiousFx/Myelin)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![.NET](https://img.shields.io/badge/.NET-10.0-blue.svg)](https://dotnet.microsoft.com/download)
-[![Documentation](https://img.shields.io/badge/docs-myelin.unambitiousfx.com-blue)](https://myelin.unambitiousfx.com)
+[![Documentation](https://img.shields.io/badge/docs-unambitiousfx.com%2Fmyelin-blue)](https://unambitiousfx.com/myelin/)
 
 SSRF-safe outbound HTTP for .NET. Use it whenever your server fetches a URL it did not write itself: webhooks,
 « import from URL », link previews, avatar or icon fetchers, third-party callbacks.

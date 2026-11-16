@@ -1,15 +1,18 @@
-# Website
+# Docs
 
-This website is built using [Docusaurus](https://docusaurus.io/).
+`docs/` (the pages) and `sidebars.ts` are published at <https://unambitiousfx.com/myelin/> by [UnambitiousFx.github.io](https://github.com/UnambitiousFx/UnambitiousFx.github.io), which builds every UnambitiousFx library into one Docusaurus site.
+
+- `main` is served as the latest major. Each older major is served from its latest release tag.
+- Every Release run redeploys the site, so merged changes go live a few minutes later, including `docs:` commits that do not release.
+- `llms.txt`, `llms-full.txt` and the custom llms files are generated under `/myelin/` (configured in the site repo).
+
+## Preview
+
+From a clone of UnambitiousFx.github.io next to this repository:
 
 ```bash
-pnpm install   # dependencies
-pnpm start     # local dev server with live reload
-pnpm build     # static site, plus llms.txt / llms-full.txt, in build/
-pnpm typecheck
+pnpm install
+MYELIN_REPO=../Myelin pnpm start
 ```
 
-## Deployment
-
-`.github/workflows/docs.yml` builds the site on every pull request that touches `docs/`, and deploys it to GitHub Pages
-(`myelin.unambitiousfx.com`, see `static/CNAME`) on pushes to `main`, once the repository is public.
+This serves your working tree, uncommitted changes included. `pnpm build` also checks links: the site uses `onBrokenLinks: "throw"`, so a broken link here blocks the next deploy of the whole site.
