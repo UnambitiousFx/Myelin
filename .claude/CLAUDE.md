@@ -11,7 +11,7 @@ redirect revalidated, bounded time and size. Namespace: `UnambitiousFx.Myelin`. 
 | `test/Myelin.Tests` | Tests; `StubHandler` and `FixedResolver` (`TestDoubles.cs`) keep them off the network |
 | `benchmarks/MyelinBenchmark` | BenchmarkDotNet benchmarks |
 | `examples/BasicUsage` | Console sample; CI publishes it with NativeAOT and checks every refusal it prints |
-| `docs/` | Docusaurus site (`myelin.unambitiousfx.com`) |
+| `docs/` | Docs pages + sidebar, published at `unambitiousfx.com/myelin/` |
 
 ## Principles
 
