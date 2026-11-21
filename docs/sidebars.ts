@@ -13,7 +13,7 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Core Concepts',
       collapsed: false,
-      items: ['address-policy', 'safe-http-client', 'http-client-factory'],
+      items: ['address-policy', 'safe-http-client', 'http-client-factory', 'registered-endpoints'],
     },
     {
       type: 'category',

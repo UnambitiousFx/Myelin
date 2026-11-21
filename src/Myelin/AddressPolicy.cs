@@ -84,4 +84,57 @@ public static class AddressPolicy
 
         return true;
     }
+
+    /// <summary>
+    ///     Tells whether a connection to a registered endpoint (<see cref="IRegisteredEndpoints" />) may reach an address:
+    ///     what <see cref="IsAllowed" /> allows, plus private-use, shared (CGNAT) and unique-local addresses. Every other
+    ///     refused range (loopback, link-local and cloud metadata, multicast, unspecified...) stays refused.
+    /// </summary>
+    /// <param name="address">A resolved address.</param>
+    /// <returns><see langword="true" /> for a globally reachable or private-network unicast address; <see langword="false" /> otherwise.</returns>
+    public static bool IsAllowedForRegisteredEndpoint(IPAddress address)
+    {
+        if (IsAllowed(address))
+        {
+            return true;
+        }
+
+        // Judged on the IPv4 address it embeds, like IsAllowed. NAT64 is not: a translator reaching private space is not the registered host.
+        if (address.IsIPv4MappedToIPv6)
+        {
+            address = address.MapToIPv4();
+        }
+
+        if (CloudMetadata.Any(network => network.Contains(address)))
+        {
+            return false;
+        }
+
+        foreach (var network in PrivateNetworks)
+        {
+            if (network.Contains(address))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // The only ranges a registered endpoint adds, each an entry of the IANA special-purpose registries.
+    private static readonly IPNetwork[] PrivateNetworks =
+    [
+        IPNetwork.Parse("10.0.0.0/8"), // IPv4 registry: Private-Use (RFC 1918)
+        IPNetwork.Parse("172.16.0.0/12"), // IPv4 registry: Private-Use (RFC 1918)
+        IPNetwork.Parse("192.168.0.0/16"), // IPv4 registry: Private-Use (RFC 1918)
+        IPNetwork.Parse("100.64.0.0/10"), // IPv4 registry: Shared Address Space (RFC 6598), CGNAT and Tailscale
+        IPNetwork.Parse("fc00::/7") // IPv6 registry: Unique-Local (RFC 4193)
+    ];
+
+    // Cloud metadata services that sit inside those ranges rather than in link-local: never a registered endpoint.
+    private static readonly IPNetwork[] CloudMetadata =
+    [
+        IPNetwork.Parse("100.100.100.200/32"), // Alibaba Cloud instance metadata
+        IPNetwork.Parse("fd00:ec2::254/128") // AWS instance metadata over IPv6
+    ];
 }

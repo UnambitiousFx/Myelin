@@ -5,7 +5,7 @@ namespace UnambitiousFx.Myelin;
 /// <summary>
 ///     Checks every request of an <see cref="HttpClient" /> built by <c>IHttpClientFactory</c> with <c>UseMyelin()</c>:
 ///     HTTPS, no credentials in the URL, the allow-list. The address checks live in the primary handler
-///     (<see cref="MyelinHandler.Create" />), which follows no redirect: a 3xx reaches the caller as it is.
+///     (<see cref="MyelinHandler.Create(IHostResolver?)" />), which follows no redirect: a 3xx reaches the caller as it is.
 /// </summary>
 internal sealed class MyelinPolicyHandler(IOptionsMonitor<MyelinOptions> options, string name) : DelegatingHandler
 {

@@ -49,6 +49,13 @@ builder.Services.AddHttpClient<WebhookSender>().UseMyelin(o => o.AllowedHosts = 
 
 The client refuses unsafe URLs and addresses, and returns redirects instead of following them.
 
+## Registered endpoints
+
+Only for services the application registered itself on a private network (a worker by `host:port`), never for a URL
+from user input: implement `IRegisteredEndpoints` and opt in with
+`.UseMyelin(o => o.AllowRegisteredEndpoints(sp => sp.GetRequiredService<IRegisteredEndpoints>()))`. Exact `https`
+host:port pairs may then reach private, CGNAT and ULA addresses; loopback, link-local and metadata stay refused.
+
 ## Tests
 
 Register a fake `IHostResolver` before `AddMyelin()` to control DNS answers; build a `SafeHttpClient` over a stub

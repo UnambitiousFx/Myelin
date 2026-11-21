@@ -19,4 +19,20 @@ public sealed class MyelinOptions
 
     /// <summary>How many redirects a GET may follow. Default: 3.</summary>
     public int MaxRedirects { get; set; } = 3;
+
+    // A field, not a property: configuration binding never sets it.
+    internal Func<IServiceProvider, IRegisteredEndpoints>? RegisteredEndpoints;
+
+    /// <summary>
+    ///     Lets the endpoints registered in <see cref="IRegisteredEndpoints" /> (exact <c>https</c> host and port pairs)
+    ///     resolve to private-use, shared (CGNAT) and unique-local addresses. A narrow, explicit opt-in: every other host
+    ///     keeps the default policy, and loopback, link-local, cloud metadata and multicast stay refused for all.
+    /// </summary>
+    /// <param name="registeredEndpoints">Gets the registered endpoints from the service provider of <c>AddMyelin</c> or <c>UseMyelin</c>.</param>
+    /// <remarks>Applies to <c>AddMyelin</c> and <c>UseMyelin</c>; a handler built by hand takes them in <see cref="MyelinHandler.Create(IHostResolver?, IRegisteredEndpoints?)" />.</remarks>
+    public void AllowRegisteredEndpoints(Func<IServiceProvider, IRegisteredEndpoints> registeredEndpoints)
+    {
+        ArgumentNullException.ThrowIfNull(registeredEndpoints);
+        RegisteredEndpoints = registeredEndpoints;
+    }
 }

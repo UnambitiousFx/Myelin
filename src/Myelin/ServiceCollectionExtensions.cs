@@ -25,16 +25,20 @@ public static class ServiceCollectionExtensions
         }
 
         services.TryAddSingleton<IHostResolver, DnsHostResolver>();
-        services.TryAddSingleton(sp => new SafeHttpClient(
-            new HttpMessageInvoker(MyelinHandler.Create(sp.GetRequiredService<IHostResolver>())),
-            sp.GetRequiredService<IOptions<MyelinOptions>>().Value,
-            sp.GetRequiredService<ILogger<SafeHttpClient>>()));
+        services.TryAddSingleton(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<MyelinOptions>>().Value;
+            return new SafeHttpClient(
+                new HttpMessageInvoker(MyelinHandler.Create(sp.GetRequiredService<IHostResolver>(), options.RegisteredEndpoints?.Invoke(sp))),
+                options,
+                sp.GetRequiredService<ILogger<SafeHttpClient>>());
+        });
         return services;
     }
 
     /// <summary>
     ///     Makes a client built by <c>IHttpClientFactory</c> SSRF-safe: its primary handler becomes
-    ///     <see cref="MyelinHandler.Create" /> (public addresses only, no automatic redirect, no proxy), and every request
+    ///     <see cref="MyelinHandler.Create(IHostResolver?)" /> (public addresses only, no automatic redirect, no proxy), and every request
     ///     is checked for HTTPS, credentials and the allow-list. A refusal throws <see cref="OutboundRefusedException" />.
     /// </summary>
     /// <param name="builder">The client builder from <c>AddHttpClient</c>.</param>
@@ -50,7 +54,9 @@ public static class ServiceCollectionExtensions
 
         builder.Services.TryAddSingleton<IHostResolver, DnsHostResolver>();
         var name = builder.Name;
-        builder.ConfigurePrimaryHttpMessageHandler(sp => MyelinHandler.Create(sp.GetRequiredService<IHostResolver>()));
+        builder.ConfigurePrimaryHttpMessageHandler(sp => MyelinHandler.Create(
+            sp.GetRequiredService<IHostResolver>(),
+            sp.GetRequiredService<IOptionsMonitor<MyelinOptions>>().Get(name).RegisteredEndpoints?.Invoke(sp)));
         builder.AddHttpMessageHandler(sp => new MyelinPolicyHandler(sp.GetRequiredService<IOptionsMonitor<MyelinOptions>>(), name));
         return builder;
     }
