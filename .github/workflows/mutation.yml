@@ -1,7 +1,9 @@
 name: Mutation
 
-# Non-blocking for now (issue #8): no --break-at, the report is for reading.
+# A full run takes ~20 s, so every PR runs all mutants (no --since); the break threshold is in stryker-config.json.
 on:
+  pull_request:
+    branches: [main]
   schedule:
     - cron: "0 4 * * 1" # Mondays, 04:00 UTC
   workflow_dispatch:
