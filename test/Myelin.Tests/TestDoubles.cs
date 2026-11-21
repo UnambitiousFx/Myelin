@@ -40,3 +40,27 @@ internal static class Responses
         return new HttpResponseMessage(HttpStatusCode.Found) { Headers = { Location = new Uri(location, UriKind.RelativeOrAbsolute) } };
     }
 }
+
+/// <summary>A registered-endpoint set that can change between requests, and records each question.</summary>
+internal sealed class RegisteredSet(params (string Host, int Port)[] endpoints) : IRegisteredEndpoints
+{
+    public HashSet<(string Host, int Port)> Endpoints { get; } = [..endpoints];
+
+    public List<(string Host, int Port)> Asked { get; } = [];
+
+    public ValueTask<bool> IsRegisteredAsync(string host, int port, CancellationToken cancellationToken)
+    {
+        Asked.Add((host, port));
+        return ValueTask.FromResult(Endpoints.Contains((host, port)));
+    }
+}
+
+/// <summary>Answers requests to one host itself and sends every other request to the inner handler.</summary>
+internal sealed class OneHostHandler(string host, Func<HttpRequestMessage, HttpResponseMessage> respond, HttpMessageHandler inner)
+    : DelegatingHandler(inner)
+{
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        return request.RequestUri!.Host == host ? Task.FromResult(respond(request)) : base.SendAsync(request, cancellationToken);
+    }
+}

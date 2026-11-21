@@ -14,14 +14,14 @@ public sealed record OutboundResponse(HttpStatusCode Status, byte[] Body);
 ///     only (checked after resolution, DNS rebinding included), every redirect revalidated, bounded time and size, each
 ///     refusal logged with its host and reason only.
 /// </summary>
-/// <remarks>Register it with <c>services.AddMyelin()</c>; build one by hand with <see cref="MyelinHandler.Create" /> in tests.</remarks>
+/// <remarks>Register it with <c>services.AddMyelin()</c>; build one by hand with <see cref="MyelinHandler.Create(IHostResolver?)" /> in tests.</remarks>
 public sealed partial class SafeHttpClient
 {
     private readonly HttpMessageInvoker _invoker;
     private readonly ILogger<SafeHttpClient> _logger;
     private readonly MyelinOptions _options;
 
-    /// <summary>Creates a client over an invoker, normally one wrapping <see cref="MyelinHandler.Create" />.</summary>
+    /// <summary>Creates a client over an invoker, normally one wrapping <see cref="MyelinHandler.Create(IHostResolver?)" />.</summary>
     /// <param name="invoker">Sends the requests; the address checks live in its handler.</param>
     /// <param name="options">The allow-list, User-Agent, timeout and redirect limit.</param>
     /// <param name="logger">Receives one warning per refusal.</param>

@@ -43,6 +43,10 @@ reachable, plus multicast and broadcast:
 | `fe80::/10`, `fec0::/10` | Link-local, deprecated site-local |
 | `ff00::/8` | Multicast |
 
+An application that must call a service it registered itself on a private network can opt in to
+[registered endpoints](./registered-endpoints.mdx): exact `https` host:port pairs allowed to reach private-use, CGNAT and
+unique-local addresses, and nothing else.
+
 `192.0.0.0/24` and `2001::/23` are refused whole, including the few anycast services they hold: an application has
 no reason to call them.
 
