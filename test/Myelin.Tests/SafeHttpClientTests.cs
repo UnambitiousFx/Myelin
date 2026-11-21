@@ -73,10 +73,11 @@ public class SafeHttpClientTests
         var handler = new StubHandler(_ => Responses.Ok("never"));
 
         // Act (When)
-        var refusal = await RefusalOf(Client(handler).GetAsync(new Uri("/file.json", UriKind.Relative), 1024, Ct));
+        var refusal = await Assert.ThrowsAsync<OutboundRefusedException>(() =>
+            Client(handler).GetAsync(new Uri("/file.json", UriKind.Relative), 1024, Ct));
 
         // Assert (Then)
-        Assert.Equal(RefusalReasons.NotHttps, refusal);
+        Assert.Equal((RefusalReasons.NotHttps, ""), (refusal.Reason, refusal.Host));
     }
 
     [Fact]
@@ -166,10 +167,10 @@ public class SafeHttpClientTests
     [Fact]
     public async Task GetAsync_WithStreamedBodyOverTheLimit_RefusesWhileReading()
     {
-        // Arrange (Given): no Content-Length, the limit is enforced on what is read.
+        // Arrange (Given): a declared length that lies, so only the limit on what is read can refuse it.
         var handler = new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
-            Content = new StreamContent(new MemoryStream(new byte[2048]))
+            Content = new StreamContent(new MemoryStream(new byte[2048])) { Headers = { ContentLength = 10 } }
         });
 
         // Act (When)
@@ -345,6 +346,56 @@ public class SafeHttpClientTests
 
         // Act & Assert (When / Then)
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => client.GetAsync(new Uri(Allowed), 1024, Ct));
+    }
+
+    [Fact]
+    public async Task SendOnceAsync_WhenTheTimeoutElapses_ThrowsOperationCanceled()
+    {
+        // Arrange (Given)
+        var client = Client(new SlowHandler(), new MyelinOptions { Timeout = TimeSpan.FromMilliseconds(50) });
+
+        // Act & Assert (When / Then)
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            client.SendOnceAsync(HttpMethod.Get, new Uri(Allowed), null, null, 1024, Ct));
+    }
+
+    [Fact]
+    public async Task SendOnceAsync_WithUserAgent_SendsIt()
+    {
+        // Arrange (Given)
+        string? agent = null;
+        var handler = new StubHandler(r =>
+        {
+            agent = r.Headers.UserAgent.ToString();
+            return new HttpResponseMessage(HttpStatusCode.OK);
+        });
+        var client = Client(handler, new MyelinOptions { UserAgent = "myelin-tests/1.0" });
+
+        // Act (When)
+        await client.SendOnceAsync(HttpMethod.Get, new Uri(Allowed), null, null, 1024, Ct);
+
+        // Assert (Then)
+        Assert.Equal("myelin-tests/1.0", agent);
+    }
+
+    [Fact]
+    public async Task PostJsonAsync_WithNullBody_ThrowsArgumentNullException()
+    {
+        // Arrange (Given)
+        var client = Client(new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)));
+
+        // Act & Assert (When / Then)
+        await Assert.ThrowsAsync<ArgumentNullException>(() => client.PostJsonAsync(new Uri(Allowed), null!, 1024, Ct));
+    }
+
+    [Fact]
+    public async Task SendOnceAsync_WithNullUrl_ThrowsArgumentNullException()
+    {
+        // Arrange (Given)
+        var client = Client(new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)));
+
+        // Act & Assert (When / Then)
+        await Assert.ThrowsAsync<ArgumentNullException>(() => client.SendOnceAsync(HttpMethod.Get, null!, null, null, 1024, Ct));
     }
 
     [Fact]
