@@ -67,6 +67,7 @@ public sealed partial class SafeHttpClient
                     throw Refuse(RefusalReasons.RedirectWithoutLocation, current.Host);
                 }
 
+                // Stryker disable once Conditional : equivalent, new Uri(base, absolute) returns the absolute URI unchanged
                 current = location.IsAbsoluteUri ? location : new Uri(current, location);
                 continue;
             }
@@ -108,6 +109,7 @@ public sealed partial class SafeHttpClient
         int maxBytes,
         CancellationToken cancellationToken = default)
     {
+        // Stryker disable once Statement : equivalent, new HttpRequestMessage throws the same ArgumentNullException below
         ArgumentNullException.ThrowIfNull(method);
         ArgumentNullException.ThrowIfNull(url);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -169,6 +171,7 @@ public sealed partial class SafeHttpClient
 
     private async Task<OutboundResponse> ReadAsync(HttpResponseMessage response, int maxBytes, string host, CancellationToken cancellationToken)
     {
+        // Stryker disable once Statement,Block : fast path, the read loop below refuses the same body once it has read it
         if (response.Content.Headers.ContentLength > maxBytes)
         {
             throw Refuse(RefusalReasons.TooLarge, host);
