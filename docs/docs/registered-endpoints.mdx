@@ -19,13 +19,19 @@ Never register a host:port that comes from user input.
 
 ## Set up
 
-Implement `IRegisteredEndpoints` over wherever your application keeps its registrations, and opt in per client:
+Implement `IRegisteredEndpoints` over wherever your application keeps its registrations, and opt in per client. The
+handler is long-lived and may ask from several connections at once: the implementation must be thread-safe and must
+not hold a scoped service (an EF Core context) directly.
 
 ```csharp
-public sealed class WorkerRegistry(AppDb db) : IRegisteredEndpoints
+public sealed class WorkerRegistry(IDbContextFactory<AppDb> contexts) : IRegisteredEndpoints
 {
-    public async ValueTask<bool> IsRegisteredAsync(string host, int port, CancellationToken ct) =>
-        await db.Workers.AnyAsync(w => w.Host == host && w.Port == port && !w.Revoked, ct);
+    public async ValueTask<bool> IsRegisteredAsync(string host, int port, CancellationToken ct)
+    {
+        // One context per lookup: connections are opened concurrently.
+        await using var db = await contexts.CreateDbContextAsync(ct);
+        return await db.Workers.AnyAsync(w => w.Host == host && w.Port == port && !w.Revoked, ct);
+    }
 }
 
 services.AddSingleton<IRegisteredEndpoints, WorkerRegistry>();
@@ -61,7 +67,8 @@ and `fd00:ec2::254` (AWS over IPv6).
 - **HTTPS only.** An `http` URL never gets the exemption.
 - **Asked per connection.** `IsRegisteredAsync` is called whenever a new connection resolves to a private address, so
   registering or revoking an endpoint applies without rebuilding the client. Pooled connections of such a handler live
-  one minute at most, so a revoked endpoint stops being reached within a minute.
+  one minute at most, so no new request reaches a revoked endpoint after a minute. A request already in progress (a
+  long upload, a streamed response) is not cancelled by a revocation.
 - **Redirects are checked again.** A redirect is a new request to a new host:port: if that pair is not registered, a
   private answer is refused (`address_refused`).
 

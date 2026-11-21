@@ -32,8 +32,8 @@ public static class MyelinHandler
     ///     <see langword="null" /> exempts none.
     /// </param>
     /// <returns>
-    ///     The handler. With registered endpoints, pooled connections live one minute at most, so a revoked endpoint stops
-    ///     being reached within that time.
+    ///     The handler. With registered endpoints, pooled connections live one minute at most, so no new request reaches a
+    ///     revoked endpoint after that time; a request already in progress is not cancelled.
     /// </returns>
     /// <remarks>A refused connection surfaces as an <see cref="HttpRequestException" /> wrapping an <see cref="OutboundRefusedException" />.</remarks>
     public static SocketsHttpHandler Create(IHostResolver? resolver, IRegisteredEndpoints? registeredEndpoints)

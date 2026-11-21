@@ -8,7 +8,8 @@ namespace UnambitiousFx.Myelin;
 /// <remarks>
 ///     Asked on every new connection that resolves to such an address, so registering or revoking an endpoint applies
 ///     without rebuilding the client. Loopback, link-local, cloud metadata, multicast and every other refused range stay
-///     refused even for a registered endpoint.
+///     refused even for a registered endpoint. Called concurrently from a long-lived handler: keep it thread-safe and do not
+///     capture a scoped service.
 /// </remarks>
 public interface IRegisteredEndpoints
 {
