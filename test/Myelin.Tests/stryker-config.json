@@ -6,6 +6,6 @@
     "test-runner": "mtp",
     "reporters": ["Html", "Json", "Progress", "ClearText"],
     "ignore-methods": ["*Log*", "*Activity*", "ConfigureAwait"],
-    "thresholds": { "high": 80, "low": 60, "break": 0 }
+    "thresholds": { "high": 95, "low": 90, "break": 90 }
   }
 }
